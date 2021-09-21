@@ -1,0 +1,9 @@
+{caveDwelling=2,
+ effect=2,
+ fertility=2,
+ flowerProvider=2,
+ lifespan=2,
+ nocturnal=2,
+ species=2,
+ speed=2,
+ tolerantFlyer=2}
