@@ -1,19 +1,8 @@
-local optimizer = require("optimizers.DiminishingTraitsOptimizer")
+-- local optimizer = require("optimizers.DiminishingTraitsOptimizer")
+-- local optimizer = require("optimizers.MixingOptimizer")
 local mockDrones = require("simulator.MockDrones")
 local beeUtils = require("utils.beeUtils")
 local luaUtils = require("utils.luaUtils")
-
-local target = {
-    caveDwelling = {trait = true, importance = 1},
-    effect = {trait = "None", importance = 1},
-    fertility = {trait = 4.0, importance = 1},
-    flowerProvider = {trait = "Flowers", importance = 1},
-    lifespan = {trait = 10.0, importance = 1},
-    nocturnal = {trait = true, importance = 1},
-    species = {trait = "Cultivated", importance = 1},
-    speed = {trait = 1.2000000476837, importance = 1},
-    tolerantFlyer = {trait = true, importance = 1}
-}
 
 local function evenProbability()
     if math.random() < 0.5 then return true end
@@ -69,7 +58,7 @@ local function dump(o)
     end
 end
 
-local function logProgress(princess, drone)
+local function logProgress(princess, drone, target, generation)
     local princessProgress = beeUtils.getProgress(princess, target)
     local droneProgress = beeUtils.getProgress(drone, target)
     local maxPossibleProgress = beeUtils.getMaxPossibleProgress(target)
@@ -77,43 +66,69 @@ local function logProgress(princess, drone)
                             tostring(maxPossibleProgress) .. ")"
     local droneStr = "Drone (" .. tostring(droneProgress) .. "/" ..
                          tostring(maxPossibleProgress) .. ")"
-    print(princessStr, droneStr)
+    print("Generation " .. tostring(generation), princessStr, droneStr)
 end
 
--- Initialize RNG
-math.randomseed(os.time())
-math.random()
-math.random()
-math.random()
-math.random()
-
-local allDrones = {
-    mockDrones.createDrones({species = "Imperial"}, 32),
-    mockDrones.createDrones({speed = 0.4}, 32)
-}
-local currentPrincess = mockDrones.createDrones({
-    species = "Industrious",
-    lifespan = 5
-})
-
-for generation = 1, 10 do
-    local bestDroneIndex = optimizer.getBestDroneIndex(allDrones,
-                                                       currentPrincess, target)
-    local chosenDrone = luaUtils.deepCopy(allDrones[bestDroneIndex])
-    chosenDrone.size = 1
-    local nrOfBestDrones = allDrones[bestDroneIndex].size
-    if nrOfBestDrones == 1 then
-        table.remove(allDrones, bestDroneIndex)
-    else
-        allDrones[bestDroneIndex].size = nrOfBestDrones - 1
-    end
-
-    logProgress(currentPrincess, chosenDrone)
-
-    local generationResult = simulateGeneration(currentPrincess, chosenDrone)
-    for _, drone in pairs(generationResult.drones) do
-        table.insert(allDrones, drone)
-    end
-
-    currentPrincess = generationResult.princess
+local function isFinished(princess, drone, target)
+    local princessProgress = beeUtils.getProgress(princess, target)
+    local droneProgress = beeUtils.getProgress(drone, target)
+    local maxPossibleProgress = beeUtils.getMaxPossibleProgress(target)
+    if (princessProgress == maxPossibleProgress and droneProgress ==
+        maxPossibleProgress) then return true end
+    return false
 end
+
+local simulator = {}
+
+-- Uses the optimizer on a simulated bee environment to calculate the number
+-- of generations required to get a perfect drone and princess
+-- Returns the number of generations needed
+function simulator.performSimulation(startingDrones, startingPrincess, target,
+                                     optimizer, verbose)
+    local currentDrones = luaUtils.deepCopy(startingDrones)
+    local currentPrincess = luaUtils.deepCopy(startingPrincess)
+
+    -- Initialize RNG
+    math.randomseed(os.time())
+    math.random()
+    math.random()
+    math.random()
+    math.random()
+
+    for generation = 1, 100 do
+        local bestDroneIndex = optimizer.getBestDroneIndex(currentDrones,
+                                                           currentPrincess,
+                                                           target)
+        local chosenDrone = luaUtils.deepCopy(currentDrones[bestDroneIndex])
+        chosenDrone.size = 1
+        local nrOfBestDrones = currentDrones[bestDroneIndex].size
+        if nrOfBestDrones == 1 then
+            table.remove(currentDrones, bestDroneIndex)
+        else
+            currentDrones[bestDroneIndex].size = nrOfBestDrones - 1
+        end
+
+        if verbose then
+            logProgress(currentPrincess, chosenDrone, target, generation)
+        end
+        if (isFinished(currentPrincess, chosenDrone, target)) then
+            if verbose then
+                print("Finished after " .. tostring(generation) ..
+                          " generations")
+            end
+            return generation
+        end
+
+        local generationResult =
+            simulateGeneration(currentPrincess, chosenDrone)
+        for _, drone in pairs(generationResult.drones) do
+            table.insert(currentDrones, drone)
+        end
+
+        currentPrincess = generationResult.princess
+    end
+
+    return nil
+end
+
+return simulator

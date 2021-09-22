@@ -1,24 +1,24 @@
 local luaUtils = require("utils.luaUtils")
 local beeUtils = {}
 
-local function equivalentTraits(traitA, traitB)
+function beeUtils.equivalentTraits(traitA, traitB)
     if (type(traitA) == "number" and type(traitB) == "number") then
         return luaUtils.areEqualFloats(traitA, traitB, 0.01)
     end
     return traitA == traitB
 end
 
-local function getTargetMatches(bee, target)
+function beeUtils.getTargetMatches(bee, target)
     local matches = {}
     for propertyName, propertyInfo in pairs(target) do
         local active = bee.individual.active[propertyName]
         local inactive = bee.individual.inactive[propertyName]
 
         local propertyMatch = 0
-        if (equivalentTraits(active, propertyInfo.trait)) then
+        if (beeUtils.equivalentTraits(active, propertyInfo.trait)) then
             propertyMatch = propertyMatch + 1
         end
-        if (equivalentTraits(inactive, propertyInfo.trait)) then
+        if (beeUtils.equivalentTraits(inactive, propertyInfo.trait)) then
             propertyMatch = propertyMatch + 1
         end
 
@@ -35,7 +35,9 @@ end
 
 function beeUtils.getProgress(bee, target)
     local sum = 0
-    for k, v in pairs(getTargetMatches(bee, target)) do sum = sum + v end
+    for k, v in pairs(beeUtils.getTargetMatches(bee, target)) do
+        sum = sum + v
+    end
     return sum
 end
 

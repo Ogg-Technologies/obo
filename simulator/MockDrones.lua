@@ -38,22 +38,21 @@ local targetDrone = {
     size = 1.0
 }
 
-function mockDrones.createDrones(targetEdits, amount)
+function mockDrones.createDrones(targetEdits, amount, templateDrone)
+    targetEdits = targetEdits or {}
     amount = amount or 1
-    local drone = luaUtils.deepCopy(targetDrone)
-    if targetEdits then
-        for propertyName, propertyValue in pairs(targetEdits) do
-            local ind = drone.individual
-            if (ind.active[propertyName] == nil or ind.inactive[propertyName] ==
-                nil) then
-                error(tostring(propertyName) .. " is not a valid drone property")
-            end
-            drone.individual.active[propertyName] = propertyValue
-            drone.individual.inactive[propertyName] = propertyValue
+    templateDrone = templateDrone or targetDrone
+    local drone = luaUtils.deepCopy(templateDrone)
+    for propertyName, propertyValue in pairs(targetEdits) do
+        local ind = drone.individual
+        if (ind.active[propertyName] == nil or ind.inactive[propertyName] == nil) then
+            error(tostring(propertyName) .. " is not a valid drone property")
         end
-        if (targetEdits.species ~= nil) then
-            drone.label = tostring(targetEdits.species) .. " Drone"
-        end
+        drone.individual.active[propertyName] = propertyValue
+        drone.individual.inactive[propertyName] = propertyValue
+    end
+    if (targetEdits.species ~= nil) then
+        drone.label = tostring(targetEdits.species) .. " Drone"
     end
     drone.size = amount
     return drone

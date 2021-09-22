@@ -22,8 +22,20 @@ function luaUtils.deepCopy(obj, seen)
     local s = seen or {}
     local res = setmetatable({}, getmetatable(obj))
     s[obj] = res
-    for k, v in pairs(obj) do res[luaUtils.deepCopy(k, s)] = luaUtils.deepCopy(v, s) end
+    for k, v in pairs(obj) do
+        res[luaUtils.deepCopy(k, s)] = luaUtils.deepCopy(v, s)
+    end
     return res
+end
+
+function luaUtils.sum(numberTable)
+    local acc = 0
+    for _, v in pairs(numberTable) do acc = acc + v end
+    return acc
+end
+
+function luaUtils.average(numberTable)
+    return luaUtils.sum(numberTable) / #numberTable
 end
 
 return luaUtils
