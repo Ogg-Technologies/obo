@@ -15,6 +15,7 @@ end
 
 local function calculatePairScore(princess, drone, target)
     local score = 0
+    if not beeUtils.isDrone(drone) then return score end
     local droneMatches = beeUtils.getTargetMatches(drone, target)
     local princessMatches = beeUtils.getTargetMatches(princess, target)
     for propertyName, droneMatch in pairs(droneMatches) do

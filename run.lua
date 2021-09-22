@@ -1,13 +1,18 @@
 local component = require("component")
+local beeUtils = require("utils.beeUtils")
+local optimizer = require("optimizers.MixingOptimizer")
 local ic = component.inventory_controller
-local utils = require("./utils")
+
+local config = require("./config")
+local target = config.target
+
 local sides = require("sides")
 local robot = require("robot")
 
 local function isApiaryRunning()
     local queenSlot = ic.getStackInSlot(sides.top, 1)
     if (not queenSlot) then return false end
-    return utils.isQueen(queenSlot)
+    return beeUtils.isQueen(queenSlot)
 end
 
 local function isAnalyzerRunning()
@@ -33,8 +38,8 @@ local function depositInventory()
         robot.select(i)
         local stack = ic.getStackInInternalSlot(i)
         if (stack) then
-            if (utils.isPrincess(stack) or utils.isDrone(stack) or
-                utils.isQueen(stack)) then
+            if (beeUtils.isPrincess(stack) or beeUtils.isDrone(stack) or
+                beeUtils.isQueen(stack)) then
                 robot.drop()
             else
                 robot.dropDown()
@@ -47,7 +52,7 @@ local function pickupPrincess()
     robot.select(1)
     for i = 1, ic.getInventorySize(sides.down) do
         local stack = ic.getStackInSlot(sides.down, i)
-        if (stack and utils.isPrincess(stack)) then
+        if (stack and beeUtils.isPrincess(stack)) then
             ic.suckFromSlot(sides.down, i, 1)
             return true
         end
@@ -58,34 +63,19 @@ end
 -- Waits until the provided function returns false
 local function waitWhile(func) while (func()) do os.sleep(5) end end
 
-local function calculatePairScores(princess)
-    local scores = {}
+local function pickupBestDrone(princess, target)
+    robot.select(2)
+    local drones = {}
     for i = 1, ic.getInventorySize(sides.down) do
-        scores[i] = 0
         local stack = ic.getStackInSlot(sides.down, i)
-        if (stack and utils.isDrone(stack)) then
-            scores[i] = utils.calculatePairScore(princess, stack)
+        if stack and beeUtils.isDrone(stack) then
+            drones[i] = stack
+        else
+            drones[i] = "Non drone"
         end
     end
-    return scores
-end
-
-local function pickupBestDrone(princess)
-    robot.select(2)
-    local pairScores = calculatePairScores(princess)
-    local bestDroneSlotIndex = utils.indexOfGreatest(pairScores)
-    ic.suckFromSlot(sides.down, bestDroneSlotIndex, 1)
-end
-
-local function logProgress(princess, drone)
-    local princessProgress = utils.getProgress(princess)
-    local droneProgress = utils.getProgress(drone)
-    local maxPossibleProgress = utils.getMaxPossibleProgress()
-    local princessStr = "Princess (" .. tostring(princessProgress) .. "/" ..
-                            tostring(maxPossibleProgress) .. ")"
-    local droneStr = "Drone (" .. tostring(droneProgress) .. "/" ..
-                         tostring(maxPossibleProgress) .. ")"
-    print(princessStr, droneStr)
+    local bestDroneIndex = optimizer.getBestDroneIndex(drones, princess, target)
+    ic.suckFromSlot(sides.down, bestDroneIndex, 1)
 end
 
 local function startApiary()
@@ -95,7 +85,18 @@ local function startApiary()
     ic.dropIntoSlot(sides.up, 2)
 end
 
-while true do
+local function logProgress(princess, drone, target, generation)
+    local princessProgress = beeUtils.getProgress(princess, target)
+    local droneProgress = beeUtils.getProgress(drone, target)
+    local maxPossibleProgress = beeUtils.getMaxPossibleProgress(target)
+    local princessStr = "Princess (" .. tostring(princessProgress) .. "/" ..
+                            tostring(maxPossibleProgress) .. ")"
+    local droneStr = "Drone (" .. tostring(droneProgress) .. "/" ..
+                         tostring(maxPossibleProgress) .. ")"
+    print("Generation " .. tostring(generation), princessStr, droneStr)
+end
+
+for generation = 0, 1000 do
     print("waiting for apiary")
     waitWhile(isApiaryRunning)
     print("unloading apiary")
@@ -114,9 +115,9 @@ while true do
     end
     local princess = ic.getStackInInternalSlot(1)
     print("finding the best drone for the princess")
-    pickupBestDrone(princess)
+    pickupBestDrone(princess, target)
     local drone = ic.getStackInInternalSlot(2)
-    logProgress(princess, drone)
+    logProgress(princess, drone, target, generation)
     print("starting apiary")
     startApiary()
     os.sleep(10)

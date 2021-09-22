@@ -41,19 +41,17 @@ function beeUtils.getProgress(bee, target)
     return sum
 end
 
-function beeUtils.isPrincess(bee)
-    local index = bee.label:find("Princess")
-    return index ~= nil
+local function hasLabelWithSubstring(obj, substring)
+    if obj and obj.label and obj.label:find(substring) ~= nil then
+        return true
+    end
+    return false
 end
 
-function beeUtils.isDrone(bee)
-    local index = bee.label:find("Drone")
-    return index ~= nil
-end
+function beeUtils.isPrincess(bee) return hasLabelWithSubstring(bee, "Princess") end
 
-function beeUtils.isQueen(bee)
-    local index = bee.label:find("Queen")
-    return index ~= nil
-end
+function beeUtils.isDrone(bee) return hasLabelWithSubstring(bee, "Drone") end
+
+function beeUtils.isQueen(bee) return hasLabelWithSubstring(bee, "Queen") end
 
 return beeUtils
