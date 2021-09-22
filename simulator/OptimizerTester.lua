@@ -56,4 +56,4 @@ local target = {
 local optimizer = require("optimizers.MixingOptimizer")
 
 print(calculateAvgGenerationsRequired(200, allDrones, currentPrincess, target,
-                                      optimizer, false))
+                                      optimizer, true))

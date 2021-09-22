@@ -1,3 +1,4 @@
+local simulator = require("simulator.Simulator")
 local component = require("component")
 local beeUtils = require("utils.beeUtils")
 local optimizer = require("optimizers.MixingOptimizer")
@@ -63,8 +64,7 @@ end
 -- Waits until the provided function returns false
 local function waitWhile(func) while (func()) do os.sleep(5) end end
 
-local function pickupBestDrone(princess, target)
-    robot.select(2)
+local function getAllDrones()
     local drones = {}
     for i = 1, ic.getInventorySize(sides.down) do
         local stack = ic.getStackInSlot(sides.down, i)
@@ -74,6 +74,11 @@ local function pickupBestDrone(princess, target)
             drones[i] = "Non drone"
         end
     end
+    return drones
+end
+
+local function pickupBestDrone(princess, drones, target)
+    robot.select(2)
     local bestDroneIndex = optimizer.getBestDroneIndex(drones, princess, target)
     ic.suckFromSlot(sides.down, bestDroneIndex, 1)
 end
@@ -96,7 +101,18 @@ local function logProgress(princess, drone, target, generation)
     print("Generation " .. tostring(generation), princessStr, droneStr)
 end
 
-for generation = 0, 1000 do
+local function logEstimatedNrGenerationRemaining(princess, drones, target)
+    local simulationSuccess, errorMessage = pcall(function()
+        local nrGen = simulator.performSimulation(drones, princess, target,
+                                                  optimizer, false)
+        print("Estimating " .. tostring(nrGen) .. " generations left")
+    end)
+    if not simulationSuccess then
+        print("Simulation failed with error: " .. errorMessage)
+    end
+end
+
+for generation = 1, 1000 do
     print("waiting for apiary")
     waitWhile(isApiaryRunning)
     print("unloading apiary")
@@ -114,8 +130,16 @@ for generation = 0, 1000 do
         os.sleep(10)
     end
     local princess = ic.getStackInInternalSlot(1)
+    print("Fetching drone data")
+    local drones = getAllDrones()
+
+    if config.runSimulations then
+        print("Starting simulation")
+        logEstimatedNrGenerationRemaining(princess, drones, target)
+    end
+
     print("finding the best drone for the princess")
-    pickupBestDrone(princess, target)
+    pickupBestDrone(princess, drones, target)
     local drone = ic.getStackInInternalSlot(2)
     logProgress(princess, drone, target, generation)
     print("starting apiary")
