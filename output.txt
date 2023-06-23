@@ -1,1 +1,0 @@
-"/home/obo/utils/beeUtils.lua:14: attempt to index a nil value (local 'bee')"

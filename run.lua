@@ -28,6 +28,16 @@ local function isAnalyzerRunning()
     return not allSlotsEmpty
 end
 
+-- Replace species table (which contains temp, humidity, etc) with just the species name.
+-- This simplifies the optimizer code since it does not have to take into consideration
+-- nested tables.
+local function convertToBeeFormat(slotInfo)
+    slotInfo.individual.active.species = slotInfo.individual.active.species.name
+    slotInfo.individual.inactive.species = slotInfo.individual.inactive.species.name
+    return slotInfo
+end
+
+
 local function unloadApiary()
     robot.select(1)
     local apiaryBeeSlots = {1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -69,7 +79,7 @@ local function getAllDrones()
     for i = 1, ic.getInventorySize(sides.down) do
         local stack = ic.getStackInSlot(sides.down, i)
         if stack and beeUtils.isDrone(stack) then
-            drones[i] = stack
+            drones[i] = convertToBeeFormat(stack)
         else
             drones[i] = "Non drone"
         end
@@ -129,7 +139,7 @@ for generation = 1, 1000 do
         print("failed to find princess, retrying in 10 seconds")
         os.sleep(10)
     end
-    local princess = ic.getStackInInternalSlot(1)
+    local princess = convertToBeeFormat(ic.getStackInInternalSlot(1))
     print("Fetching drone data")
     local drones = getAllDrones()
 
@@ -140,7 +150,7 @@ for generation = 1, 1000 do
 
     print("finding the best drone for the princess")
     pickupBestDrone(princess, drones, target)
-    local drone = ic.getStackInInternalSlot(2)
+    local drone = convertToBeeFormat(ic.getStackInInternalSlot(2))
     logProgress(princess, drone, target, generation)
     print("starting apiary")
     startApiary()
