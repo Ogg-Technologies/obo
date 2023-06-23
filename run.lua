@@ -17,7 +17,7 @@ local function isApiaryRunning()
 end
 
 local function isAnalyzerRunning()
-    local inputSlotIndicies = {1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
+    local inputSlotIndicies = { 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }
     local allSlotsEmpty = true
     for _, i in ipairs(inputSlotIndicies) do
         if (ic.getStackInSlot(sides.front, i) ~= nil) then
@@ -28,19 +28,9 @@ local function isAnalyzerRunning()
     return not allSlotsEmpty
 end
 
--- Replace species table (which contains temp, humidity, etc) with just the species name.
--- This simplifies the optimizer code since it does not have to take into consideration
--- nested tables.
-local function convertToBeeFormat(slotInfo)
-    slotInfo.individual.active.species = slotInfo.individual.active.species.name
-    slotInfo.individual.inactive.species = slotInfo.individual.inactive.species.name
-    return slotInfo
-end
-
-
 local function unloadApiary()
     robot.select(1)
-    local apiaryBeeSlots = {1, 2, 3, 4, 5, 6, 7, 8, 9}
+    local apiaryBeeSlots = { 1, 2, 3, 4, 5, 6, 7, 8, 9 }
     for _, i in ipairs(apiaryBeeSlots) do ic.suckFromSlot(sides.top, i) end
 end
 
@@ -50,7 +40,7 @@ local function depositInventory()
         local stack = ic.getStackInInternalSlot(i)
         if (stack) then
             if (beeUtils.isPrincess(stack) or beeUtils.isDrone(stack) or
-                beeUtils.isQueen(stack)) then
+                    beeUtils.isQueen(stack)) then
                 robot.drop()
             else
                 robot.dropDown()
@@ -79,7 +69,7 @@ local function getAllDrones()
     for i = 1, ic.getInventorySize(sides.down) do
         local stack = ic.getStackInSlot(sides.down, i)
         if stack and beeUtils.isDrone(stack) then
-            drones[i] = convertToBeeFormat(stack)
+            drones[i] = beeUtils.convertToBeeFormat(stack)
         else
             drones[i] = "Non drone"
         end
@@ -105,16 +95,16 @@ local function logProgress(princess, drone, target, generation)
     local droneProgress = beeUtils.getProgress(drone, target)
     local maxPossibleProgress = beeUtils.getMaxPossibleProgress(target)
     local princessStr = "Princess (" .. tostring(princessProgress) .. "/" ..
-                            tostring(maxPossibleProgress) .. ")"
+        tostring(maxPossibleProgress) .. ")"
     local droneStr = "Drone (" .. tostring(droneProgress) .. "/" ..
-                         tostring(maxPossibleProgress) .. ")"
+        tostring(maxPossibleProgress) .. ")"
     print("Generation " .. tostring(generation), princessStr, droneStr)
 end
 
 local function logEstimatedNrGenerationRemaining(princess, drones, target)
     local simulationSuccess, errorMessage = pcall(function()
         local nrGen = simulator.performSimulation(drones, princess, target,
-                                                  optimizer, false)
+            optimizer, false)
         print("Estimating " .. tostring(nrGen) .. " generations left")
     end)
     if not simulationSuccess then
@@ -139,7 +129,7 @@ for generation = 1, 1000 do
         print("failed to find princess, retrying in 10 seconds")
         os.sleep(10)
     end
-    local princess = convertToBeeFormat(ic.getStackInInternalSlot(1))
+    local princess = beeUtils.convertToBeeFormat(ic.getStackInInternalSlot(1))
     print("Fetching drone data")
     local drones = getAllDrones()
 
@@ -150,7 +140,7 @@ for generation = 1, 1000 do
 
     print("finding the best drone for the princess")
     pickupBestDrone(princess, drones, target)
-    local drone = convertToBeeFormat(ic.getStackInInternalSlot(2))
+    local drone = beeUtils.convertToBeeFormat(ic.getStackInInternalSlot(2))
     logProgress(princess, drone, target, generation)
     print("starting apiary")
     startApiary()

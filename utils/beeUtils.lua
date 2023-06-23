@@ -1,6 +1,17 @@
 local luaUtils = require("utils.luaUtils")
 local beeUtils = {}
 
+-- Converts the slot info to the correct bee format
+--
+-- Replace species table (which contains temp, humidity, etc) with just the species name.
+-- This simplifies the optimizer code since it does not have to take into consideration
+-- nested tables.
+function beeUtils.convertToBeeFormat(slotInfo)
+    slotInfo.individual.active.species = slotInfo.individual.active.species.name
+    slotInfo.individual.inactive.species = slotInfo.individual.inactive.species.name
+    return slotInfo
+end
+
 function beeUtils.equivalentTraits(traitA, traitB)
     if (type(traitA) == "number" and type(traitB) == "number") then
         return luaUtils.areEqualFloats(traitA, traitB, 0.01)
@@ -8,6 +19,10 @@ function beeUtils.equivalentTraits(traitA, traitB)
     return traitA == traitB
 end
 
+-- Returns a table with the number of matches for each property
+-- If both the active and inactive traits match, the match count is 2.
+-- If only one of them matches, the match count is 1.
+-- If neither of them match, the match count is 0.
 function beeUtils.getTargetMatches(bee, target)
     local matches = {}
     for propertyName, propertyInfo in pairs(target) do
